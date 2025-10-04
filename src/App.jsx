@@ -2,6 +2,33 @@ import { useState } from 'react'
 import * as XLSX from 'xlsx'
 import './App.css'
 
+// Example test data - defined once, used everywhere
+const EXAMPLE_DATA = {
+  judges: [
+    { name: 'Marko Petrović', team: 'Kozara' },
+    { name: 'Jovana Nikolić', team: '' },
+    { name: 'Stefan Jovanović', team: 'Gradiška1' },
+    { name: 'Ana Stojanović', team: 'Gradiška2' },
+    { name: 'Nikola Đorđević', team: '' },
+    { name: 'Milica Ilić', team: 'Kozara' },
+    { name: 'Dimitrije Pavlović', team: 'Gradiška1' },
+    { name: 'Jelena Marinković', team: '' },
+    { name: 'Dušan Stanković', team: 'Gradiška2' },
+    { name: 'Teodora Radovanović', team: '' }
+  ],
+  games: [
+    { team: 'Kozara', judgesNeeded: 1 },
+    { team: 'Kozara', judgesNeeded: 1 },
+    { team: 'Gradiška1', judgesNeeded: 3 },
+    { team: 'Kozara', judgesNeeded: 1 },
+    { team: 'Gradiška2', judgesNeeded: 1 },
+    { team: 'Gradiška1', judgesNeeded: 3 },
+    { team: 'Kozara', judgesNeeded: 1 },
+    { team: 'Gradiška2', judgesNeeded: 3 },
+    { team: 'Kozara', judgesNeeded: 1 }
+  ]
+}
+
 function App() {
   const [judges, setJudges] = useState([])
   const [games, setGames] = useState([])
@@ -10,7 +37,7 @@ function App() {
   const [error, setError] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const handleFileUpload = (e) => {
+  const handleJudgesUpload = (e) => {
     const file = e.target.files[0]
     if (!file) return
 
@@ -21,47 +48,53 @@ function App() {
       try {
         const data = new Uint8Array(event.target.result)
         const workbook = XLSX.read(data, { type: 'array' })
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        const judgesData = XLSX.utils.sheet_to_json(sheet)
 
-        // Read Judges sheet
-        const judgesSheet = workbook.Sheets['Judges']
-        if (!judgesSheet) {
-          throw new Error('Sheet "Judges" not found. Please ensure your Excel file has a sheet named "Judges".')
-        }
-        const judgesData = XLSX.utils.sheet_to_json(judgesSheet)
-
-        // Read Games sheet
-        const gamesSheet = workbook.Sheets['Games']
-        if (!gamesSheet) {
-          throw new Error('Sheet "Games" not found. Please ensure your Excel file has a sheet named "Games".')
-        }
-        const gamesData = XLSX.utils.sheet_to_json(gamesSheet)
-
-        // Validate data
         if (judgesData.length === 0) {
-          throw new Error('Judges sheet is empty')
-        }
-        if (gamesData.length === 0) {
-          throw new Error('Games sheet is empty')
+          throw new Error('Judges file is empty')
         }
 
-        // Process judges data
         const processedJudges = judgesData.map((j, idx) => ({
           id: idx,
           name: j.Name || `Judge ${idx + 1}`,
           team: j.Team || null
         }))
 
-        // Process games data
+        setJudges(processedJudges)
+      } catch (err) {
+        setError(err.message)
+      }
+    }
+
+    reader.readAsArrayBuffer(file)
+  }
+
+  const handleGamesUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setError(null)
+    const reader = new FileReader()
+
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheet = workbook.Sheets[workbook.SheetNames[0]]
+        const gamesData = XLSX.utils.sheet_to_json(sheet)
+
+        if (gamesData.length === 0) {
+          throw new Error('Games file is empty')
+        }
+
         const processedGames = gamesData.map((g, idx) => ({
           id: idx,
           team: g.Team,
           judgesNeeded: parseInt(g.Judges_Needed) || 1
         }))
 
-        setJudges(processedJudges)
         setGames(processedGames)
-        setAssignments([])
-        setWorkloadStats([])
       } catch (err) {
         setError(err.message)
       }
@@ -159,33 +192,43 @@ function App() {
     }
   }
 
-  const loadExampleData = () => {
-    // Example judges data - 10 judges from 3 teams
-    const exampleJudges = [
-      { id: 0, name: 'Marko Petrović', team: 'Kozara' },
-      { id: 1, name: 'Jovana Nikolić', team: null },
-      { id: 2, name: 'Stefan Jovanović', team: 'Gradiška1' },
-      { id: 3, name: 'Ana Stojanović', team: 'Gradiška2' },
-      { id: 4, name: 'Nikola Đorđević', team: null },
-      { id: 5, name: 'Milica Ilić', team: 'Kozara' },
-      { id: 6, name: 'Dimitrije Pavlović', team: 'Gradiška1' },
-      { id: 7, name: 'Jelena Marinković', team: null },
-      { id: 8, name: 'Dušan Stanković', team: 'Gradiška2' },
-      { id: 9, name: 'Teodora Radovanović', team: null }
+  const downloadExampleExcel = () => {
+    // Create Judges workbook
+    const wbJudges = XLSX.utils.book_new()
+    const judgesData = [
+      ['Name', 'Team'],
+      ...EXAMPLE_DATA.judges.map(j => [j.name, j.team])
     ]
+    const wsJudges = XLSX.utils.aoa_to_sheet(judgesData)
+    XLSX.utils.book_append_sheet(wbJudges, wsJudges, 'Judges')
+    XLSX.writeFile(wbJudges, 'judges.xlsx')
 
-    // Example games data - 9 games (Kozara needs 1 judge, Gradiška teams need 3)
-    const exampleGames = [
-      { id: 0, team: 'Kozara', judgesNeeded: 1 },
-      { id: 1, team: 'Kozara', judgesNeeded: 1 },
-      { id: 2, team: 'Gradiška1', judgesNeeded: 3 },
-      { id: 3, team: 'Kozara', judgesNeeded: 1 },
-      { id: 4, team: 'Gradiška2', judgesNeeded: 1 },
-      { id: 5, team: 'Gradiška1', judgesNeeded: 3 },
-      { id: 6, team: 'Kozara', judgesNeeded: 1 },
-      { id: 7, team: 'Gradiška2', judgesNeeded: 3 },
-      { id: 8, team: 'Kozara', judgesNeeded: 1 }
-    ]
+    // Create Games workbook (slight delay to trigger second download)
+    setTimeout(() => {
+      const wbGames = XLSX.utils.book_new()
+      const gamesData = [
+        ['Team', 'Judges_Needed'],
+        ...EXAMPLE_DATA.games.map(g => [g.team, g.judgesNeeded])
+      ]
+      const wsGames = XLSX.utils.aoa_to_sheet(gamesData)
+      XLSX.utils.book_append_sheet(wbGames, wsGames, 'Games')
+      XLSX.writeFile(wbGames, 'games.xlsx')
+    }, 100)
+  }
+
+  const loadExampleData = () => {
+    // Transform EXAMPLE_DATA to state format
+    const exampleJudges = EXAMPLE_DATA.judges.map((j, idx) => ({
+      id: idx,
+      name: j.name,
+      team: j.team || null
+    }))
+
+    const exampleGames = EXAMPLE_DATA.games.map((g, idx) => ({
+      id: idx,
+      team: g.team,
+      judgesNeeded: g.judgesNeeded
+    }))
 
     setJudges(exampleJudges)
     setGames(exampleGames)
@@ -194,41 +237,52 @@ function App() {
     setError(null)
   }
 
-  const exportToExcel = () => {
+  const exportAssignmentsToExcel = () => {
     if (assignments.length === 0) {
       setError('No assignments to export')
       return
     }
 
-    // Create workbook
     const wb = XLSX.utils.book_new()
-
-    // Add assignments sheet
-    const wsData = [
+    const assignmentsData = [
       ['Team', 'Assigned Judges'],
       ...assignments.map(a => [a.team, a.judges])
     ]
-    const ws = XLSX.utils.aoa_to_sheet(wsData)
-    XLSX.utils.book_append_sheet(wb, ws, 'Assignments')
-
-    // Download file
+    const wsAssignments = XLSX.utils.aoa_to_sheet(assignmentsData)
+    XLSX.utils.book_append_sheet(wb, wsAssignments, 'Assignments')
     XLSX.writeFile(wb, 'judge-assignments.xlsx')
+  }
+
+  const exportWorkloadToExcel = () => {
+    if (workloadStats.length === 0) {
+      setError('No workload data to export')
+      return
+    }
+
+    const wb = XLSX.utils.book_new()
+    const workloadData = [
+      ['Judge', 'Team', 'Games Assigned'],
+      ...workloadStats.map(s => [s.name, s.team, s.gamesAssigned])
+    ]
+    const wsWorkload = XLSX.utils.aoa_to_sheet(workloadData)
+    XLSX.utils.book_append_sheet(wb, wsWorkload, 'Workload')
+    XLSX.writeFile(wb, 'judge-workload.xlsx')
   }
 
   return (
     <div className="app">
       <header>
         <h1>Judge Scheduler</h1>
-        <p>Upload your Excel file with Judges and Games sheets</p>
+        <p>Upload 2 Excel files: Judges and Games</p>
       </header>
 
       <div className="format-guide">
         <h3>📋 Excel Format Example</h3>
-        <p className="guide-subtitle">Your Excel file should have 2 sheets with the following structure:</p>
+        <p className="guide-subtitle">You need 2 separate Excel files with the following structure:</p>
 
         <div className="example-tables">
           <div className="example-sheet">
-            <h4>Sheet 1: "Judges"</h4>
+            <h4>File 1: "judges.xlsx"</h4>
             <table className="example-table">
               <thead>
                 <tr>
@@ -237,52 +291,18 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>Marko Petrović</td>
-                  <td>Kozara</td>
-                </tr>
-                <tr>
-                  <td>Jovana Nikolić</td>
-                  <td><em>(blank - not a player)</em></td>
-                </tr>
-                <tr>
-                  <td>Stefan Jovanović</td>
-                  <td>Gradiška1</td>
-                </tr>
-                <tr>
-                  <td>Ana Stojanović</td>
-                  <td>Gradiška2</td>
-                </tr>
-                <tr>
-                  <td>Nikola Đorđević</td>
-                  <td><em>(blank)</em></td>
-                </tr>
-                <tr>
-                  <td>Milica Ilić</td>
-                  <td>Kozara</td>
-                </tr>
-                <tr>
-                  <td>Dimitrije Pavlović</td>
-                  <td>Gradiška1</td>
-                </tr>
-                <tr>
-                  <td>Jelena Marinković</td>
-                  <td><em>(blank)</em></td>
-                </tr>
-                <tr>
-                  <td>Dušan Stanković</td>
-                  <td>Gradiška2</td>
-                </tr>
-                <tr>
-                  <td>Teodora Radovanović</td>
-                  <td><em>(blank)</em></td>
-                </tr>
+                {EXAMPLE_DATA.judges.map((judge, idx) => (
+                  <tr key={idx}>
+                    <td>{judge.name}</td>
+                    <td>{judge.team || <em>(blank - not a player)</em>}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
           <div className="example-sheet">
-            <h4>Sheet 2: "Games"</h4>
+            <h4>File 2: "games.xlsx"</h4>
             <table className="example-table">
               <thead>
                 <tr>
@@ -291,42 +311,12 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>Kozara</td>
-                  <td>1</td>
-                </tr>
-                <tr>
-                  <td>Kozara</td>
-                  <td>1</td>
-                </tr>
-                <tr>
-                  <td>Gradiška1</td>
-                  <td>3</td>
-                </tr>
-                <tr>
-                  <td>Kozara</td>
-                  <td>1</td>
-                </tr>
-                <tr>
-                  <td>Gradiška2</td>
-                  <td>1</td>
-                </tr>
-                <tr>
-                  <td>Gradiška1</td>
-                  <td>3</td>
-                </tr>
-                <tr>
-                  <td>Kozara</td>
-                  <td>1</td>
-                </tr>
-                <tr>
-                  <td>Gradiška2</td>
-                  <td>3</td>
-                </tr>
-                <tr>
-                  <td>Kozara</td>
-                  <td>1</td>
-                </tr>
+                {EXAMPLE_DATA.games.map((game, idx) => (
+                  <tr key={idx}>
+                    <td>{game.team}</td>
+                    <td>{game.judgesNeeded}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -336,19 +326,42 @@ function App() {
           <button onClick={loadExampleData} className="example-button">
             🚀 Try with Example Data
           </button>
+          <button onClick={downloadExampleExcel} className="download-example-button">
+            📥 Download Test Data (2 Excel Files)
+          </button>
         </div>
       </div>
 
       <div className="upload-section">
-        <input
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleFileUpload}
-          id="file-upload"
-        />
-        <label htmlFor="file-upload" className="upload-button">
-          Choose Excel File
-        </label>
+        <div className="upload-group">
+          <h3>Upload Files</h3>
+          <div className="upload-row">
+            <div className="upload-item">
+              <label>Judges File</label>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleJudgesUpload}
+                id="judges-upload"
+              />
+              <label htmlFor="judges-upload" className="upload-button">
+                Choose Judges.xlsx
+              </label>
+            </div>
+            <div className="upload-item">
+              <label>Games File</label>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleGamesUpload}
+                id="games-upload"
+              />
+              <label htmlFor="games-upload" className="upload-button">
+                Choose Games.xlsx
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -380,7 +393,7 @@ function App() {
         <div className="results">
           <div className="results-header">
             <h2>Judge Assignments</h2>
-            <button onClick={exportToExcel} className="export-button">
+            <button onClick={exportAssignmentsToExcel} className="export-button">
               Download Excel
             </button>
           </div>
@@ -403,7 +416,12 @@ function App() {
           </table>
 
           <div className="workload-section">
-            <h2>Judge Workload Distribution</h2>
+            <div className="results-header">
+              <h2>Judge Workload Distribution</h2>
+              <button onClick={exportWorkloadToExcel} className="export-button">
+                Download Excel
+              </button>
+            </div>
             <table>
               <thead>
                 <tr>

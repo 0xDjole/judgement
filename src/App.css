@@ -88,7 +88,9 @@ header p {
 }
 
 .example-actions {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
   margin-top: 1.5rem;
   padding-top: 1rem;
   border-top: 1px solid #333;
@@ -112,12 +114,55 @@ header p {
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
+.download-example-button {
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-example-button:hover {
+  background: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
 .upload-section {
   text-align: center;
   margin: 2rem 0;
 }
 
-#file-upload {
+.upload-group h3 {
+  margin-bottom: 1rem;
+  color: #646cff;
+}
+
+.upload-row {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.upload-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.upload-item > label:first-child {
+  font-weight: 600;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+#judges-upload,
+#games-upload {
   display: none;
 }
 
@@ -277,6 +322,10 @@ tbody tr:last-child td {
 
   .format-guide {
     padding: 1rem;
+  }
+
+  .example-actions {
+    flex-direction: column;
   }
 
   .results-header {
