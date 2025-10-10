@@ -193,6 +193,20 @@ function App() {
   }
 
   const downloadExampleExcel = () => {
+    // Helper function for iOS-compatible downloads
+    const downloadFile = (workbook, filename) => {
+      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    }
+
     // Create Judges workbook
     const wbJudges = XLSX.utils.book_new()
     const judgesData = [
@@ -201,7 +215,7 @@ function App() {
     ]
     const wsJudges = XLSX.utils.aoa_to_sheet(judgesData)
     XLSX.utils.book_append_sheet(wbJudges, wsJudges, 'Judges')
-    XLSX.writeFile(wbJudges, 'judges.xlsx')
+    downloadFile(wbJudges, 'judges.xlsx')
 
     // Create Games workbook (slight delay to trigger second download)
     setTimeout(() => {
@@ -212,8 +226,8 @@ function App() {
       ]
       const wsGames = XLSX.utils.aoa_to_sheet(gamesData)
       XLSX.utils.book_append_sheet(wbGames, wsGames, 'Games')
-      XLSX.writeFile(wbGames, 'games.xlsx')
-    }, 100)
+      downloadFile(wbGames, 'games.xlsx')
+    }, 300)
   }
 
   const loadExampleData = () => {
@@ -250,7 +264,18 @@ function App() {
     ]
     const wsAssignments = XLSX.utils.aoa_to_sheet(assignmentsData)
     XLSX.utils.book_append_sheet(wb, wsAssignments, 'Assignments')
-    XLSX.writeFile(wb, 'judge-assignments.xlsx')
+
+    // iOS-compatible download
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'judge-assignments.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   const exportWorkloadToExcel = () => {
@@ -266,7 +291,18 @@ function App() {
     ]
     const wsWorkload = XLSX.utils.aoa_to_sheet(workloadData)
     XLSX.utils.book_append_sheet(wb, wsWorkload, 'Workload')
-    XLSX.writeFile(wb, 'judge-workload.xlsx')
+
+    // iOS-compatible download
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'judge-workload.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   return (
